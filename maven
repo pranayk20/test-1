@@ -1,0 +1,36 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Updating package lists..."
+      - apt-get update
+
+      # Install Maven
+      - echo "Installing Maven..."
+      - apt-get install -y maven
+      - mvn -version
+
+      # Install Trivy
+      - echo "Installing Trivy..."
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/scripts/install.sh | sh
+      - trivy --version
+
+  build:
+    commands:
+      - echo "Building the application..."
+      - mvn clean install
+
+      # Run Trivy scan on the Docker image
+      - echo "Running Trivy scan..."
+      - docker build -t <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO_NAME>/<IMAGE_NAME>:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+      - trivy image <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO_NAME>/<IMAGE_NAME>:$CODEBUILD_RESOLVED_SOURCE_VERSION
+
+  post_build:
+    commands:
+      - echo "Build and scan completed successfully."
+
+artifacts:
+  files:
+    - "**/*"
+
